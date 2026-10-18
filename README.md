@@ -101,7 +101,7 @@ python -m fxflow.cli ingest --days 365
 streamlit run app.py
 ```
 
-The dashboard opens at **http://localhost:8501**.
+The dashboard opens at **http://localhost:8502**.
 
 > **Note:** You can launch the dashboard *without* running the pipeline first.
 > It will fetch live data directly from the Frankfurter API. Running the
@@ -207,3 +207,4 @@ Rejected records are logged with reasons for inspection on the Pipeline Monitor 
 ## 📜 License
 
 MIT
+
