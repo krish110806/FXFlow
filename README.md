@@ -9,9 +9,9 @@ visualises foreign exchange rates.
 
 | Layer | Capabilities |
 |-------|-------------|
-| **Ingestion** | Fetch historical rates from the [Frankfurter API](https://frankfurter.app/) (no API key required) |
+| **Ingestion** | Fetch historical rates from the [Frankfurter API](https://frankfurter.app/) and annual inflation from World Bank indicator `FP.CPI.TOTL.ZG` |
 | **Validation** | Type checks, range guards, duplicate detection, rejected-record logging |
-| **Storage** | Raw JSON lineage files + processed CSV (PostgreSQL optional) |
+| **Storage** | Raw JSON lineage files, timestamped World Bank CSV snapshots, and processed CSV (PostgreSQL optional) |
 | **Analytics** | Daily % returns, rolling volatility, normalised performance, correlations |
 | **Design System** | Editorial-finance terminal aesthetic (Warm ivory #F4F0E7, soft ivory cards #FFFCF5, midnight navy #142B3B, deep teal #287D6B, champagne gold #C6A568) |
 | **Dashboard** | 5-page Streamlit app with institutional Plotly interactive charts |
@@ -34,6 +34,7 @@ FXFlow/
 │   ├── logging.py                  # Loguru structured logging
 │   ├── cli.py                      # Command-line interface
 │   ├── data_access.py              # Data access layer (dashboard reads this)
+│   ├── data_access_csv.py          # World Bank CSV pipeline data access
 │   ├── database/
 │   │   ├── __init__.py
 │   │   ├── schema.py               # PostgreSQL DDL (dim/fact/meta tables)
@@ -43,7 +44,8 @@ FXFlow/
 │   │   ├── api_client.py           # Frankfurter API client
 │   │   ├── validators.py           # Record-level data validation
 │   │   ├── analytics.py            # % change & rolling volatility
-│   │   └── orchestrator.py         # Full ETL pipeline (Airflow-ready)
+│   │   ├── orchestrator.py         # Full ETL pipeline (Airflow-ready)
+│   │   └── csv_orchestrator.py     # World Bank inflation ETL and run history
 │   └── dashboard/
 │       ├── __init__.py
 │       ├── theme.py                # Colours, Plotly template, CSS
@@ -51,9 +53,10 @@ FXFlow/
 │       ├── page_explorer.py        # Currency Explorer — pair deep-dive
 │       ├── page_volatility.py      # Volatility Lab — returns & vol
 │       ├── page_economics.py       # Economic Insights — comparisons
-│       └── page_pipeline.py        # Pipeline Monitor — ops dashboard
+│       ├── page_pipeline.py        # Frankfurter Pipeline Monitor
+│       └── page_pipeline_csv.py    # World Bank CSV pipeline dashboard
 ├── data/
-│   ├── raw/                        # Raw API responses (JSON)
+│   ├── raw/                        # Raw API JSON + World Bank CSV snapshots
 │   └── processed/                  # Cleaned CSVs
 └── logs/                           # Rotating log files
 ```
@@ -147,6 +150,14 @@ python -m fxflow.cli check
 | **Volatility Lab** | Daily returns bar chart + rolling volatility line, adjustable window, volatility ranking table |
 | **Economic Insights** | Normalised performance comparison, return correlation heatmap, period change ranking |
 | **Pipeline Monitor** | Data freshness badges, ingestion volume chart, run history table, quality metrics, rejected records |
+| **Data Pipeline → CSV** | Separate World Bank inflation pipeline with per-run stage metrics, validation, local storage lineage, throughput, and execution history |
+
+The CSV pipeline stores its latest raw response at
+`data/raw/wb_inflation_raw.csv` and retains timestamped raw snapshots alongside it.
+Cleaned data, analytics, and CSV-specific execution history are stored under
+`data/processed/`; the CSV pipeline does not require PostgreSQL. Its dashboard
+counts are derived from each persisted run's stage details, while total stored
+record counts describe the current cleaned dataset.
 
 ---
 
@@ -207,4 +218,3 @@ Rejected records are logged with reasons for inspection on the Pipeline Monitor 
 ## 📜 License
 
 MIT
-

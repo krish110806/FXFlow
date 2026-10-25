@@ -31,8 +31,66 @@ from fxflow.dashboard.theme import (
 )
 
 
+def _render_switcher() -> None:
+    """Render the REST API / CSV pipeline source switcher."""
+    sw_col, _ = st.columns([2, 4])
+    with sw_col:
+        st.markdown(
+            """
+            <div style="
+                display: flex;
+                align-items: center;
+                background: #EDE7DC;
+                border: 1px solid #D1C7B7;
+                border-radius: 8px;
+                padding: 3px;
+                gap: 3px;
+                width: fit-content;
+                margin-bottom: 1.1rem;
+            ">
+            """,
+            unsafe_allow_html=True,
+        )
+        col_api, col_csv = st.columns(2)
+        with col_api:
+            if st.button(
+                "REST API",
+                key="switcher_to_rest",
+                type="primary",
+                use_container_width=True,
+                help="Frankfurter REST API pipeline (currently active)",
+            ):
+                st.session_state["pipeline_source"] = "rest"
+                st.rerun()
+        with col_csv:
+            if st.button(
+                "CSV",
+                key="switcher_to_csv",
+                type="secondary",
+                use_container_width=True,
+                help="Switch to the World Bank CSV pipeline",
+            ):
+                st.session_state["pipeline_source"] = "csv"
+                st.rerun()
+        st.markdown("</div>", unsafe_allow_html=True)
+
+
 def render() -> None:
     """Render the redesigned Data Pipeline page."""
+
+    # Initialise pipeline_source if not set
+    if "pipeline_source" not in st.session_state:
+        st.session_state["pipeline_source"] = "rest"
+
+    # If user has switched to CSV, hand off to CSV page renderer
+    if st.session_state.get("pipeline_source") == "csv":
+        import fxflow.dashboard.page_pipeline_csv as _csv_page
+        _csv_page.render()
+        return
+
+    # Render switcher at the top
+    _render_switcher()
+
     freshness = get_data_freshness()
     runs = get_pipeline_runs()
     rejected = get_rejected_records()
